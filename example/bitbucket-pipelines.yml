@@ -1,0 +1,30 @@
+# Do not forget to define $DOCKER_USER and $DOCKER_PASS variables
+# at Repository or Workspace level.
+
+image:
+  name: myregistry/bitbucket-buildx
+  username: $DOCKER_USER
+  password: $DOCKER_PASS
+
+pipelines:
+  branches:
+    master:
+      - step:
+          name: Build and push multiarch image
+          runs-on:
+            - self.hosted
+            - linux
+          services:
+            - docker
+          caches:
+            - docker
+          script:
+            - echo $DOCKER_PASS | docker login myregistry --username $DOCKER_USER --password-stdin
+            - docker buildx create --use --name mybuilder
+            - export IMAGE_NAME=myregistry/$BITBUCKET_REPO_SLUG
+            - docker buildx build --platform linux/amd64,linux/arm64 -t ${IMAGE_NAME} --push .
+
+definitions:
+  services:
+    docker:
+      image: docker:dind
